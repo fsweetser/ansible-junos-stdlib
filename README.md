@@ -32,5 +32,5 @@ DEPENDENCIES
 
 LICENSE
 =======
-  BSD-2 like, see LICESE file for details
+  BSD-2
   
