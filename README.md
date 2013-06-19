@@ -1,8 +1,3 @@
-ansible-junos-stdlib
-====================
-
-EXPERIMENTAL - Anisble 1.2 Junos "standard library" modules
-
 DESCRIPTION
 ===========
 
@@ -24,6 +19,9 @@ MODULES
 
   * `junos_rescue` - used to reload the saved "rescue configuration" file.  This assumes that a rescue configuration file has be previously saved 
   
+  For documentation on each of the above modules, please refer directly to the source code
 
+DEPENDENCIES
+============
 
 
