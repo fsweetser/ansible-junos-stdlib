@@ -1,0 +1,29 @@
+### -----------------------------------------------------------------
+### Install Junos OS image as specified by the host's
+### junos_os_tag variable
+### -----------------------------------------------------------------
+
+- hosts: all
+  name: Junos OS image installation
+  connection: local
+  gather_facts: no
+  vars_files:
+    - /usr/local/junos/packages/catalog.yml
+    
+  tasks:
+    - name: Junos OS install, please wait, this could take a bit ...
+      junos_install_os: >
+        hostname="{{ inventory_hostname }}"  
+        version="{{ PACKAGE_TAGS[junos_os_tag].version }}"
+        package="{{ PACKAGE_TAGS[junos_os_tag].package }}"
+        package_dir="{{ PACKAGE_DIR }}" 
+        reboot=True
+      notify:
+        - Junos reboot
+        - Junos wait for restart
+  
+  handlers:
+    - name: Junos reboot
+      pause: seconds="{{ reboot_wait_time }}"
+    - name: Junos wait for restart
+      wait_for: host="{{ inventory_hostname }}" port=830

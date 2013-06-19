@@ -1,0 +1,6 @@
+- hosts: all
+  connection: local
+  gather_facts: no
+  tasks:
+    - include: tasks/check_nc.yml timeout=1
+

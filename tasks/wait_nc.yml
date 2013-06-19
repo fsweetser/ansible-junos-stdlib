@@ -1,0 +1,4 @@
+---
+- name: Waiting for NETCONF
+  wait_for: host="{{ inventory_hostname }}" port=830 
+

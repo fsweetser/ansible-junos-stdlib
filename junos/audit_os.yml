@@ -1,0 +1,25 @@
+---
+- hosts: all
+  name: Junos OS image audit
+  connection: local
+  gather_facts: no    
+  vars_files:
+    - /usr/local/junos/packages/catalog.yml
+
+  tasks:
+    
+    - include: tasks/check_nc.yml timeout=1
+              
+    - name: Checking Junos OS target version against required version
+      junos_install_os: >
+        hostname="{{ inventory_hostname }}"  
+        version="{{ PACKAGE_TAGS[junos_os_tag].version }}"
+        audit=True
+      register: junos_audit
+      notify:
+        - Junos upgrade required
+      
+  handlers:
+    - name: Junos upgrade required
+      debug: msg="Junos OS upgrade required, needs {{ junos_audit.version }}, has {{ junos_audit.has_version }}"
+    

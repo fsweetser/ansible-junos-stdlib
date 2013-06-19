@@ -1,0 +1,20 @@
+#!/usr/local/bin/ruby
+# WANT_JSON
+
+require 'rubygems'
+require 'json'
+require 'net/netconf/jnpr'
+require 'junos-ez/stdlib'
+
+ansible_args = JSON.parse( File.read( ARGV[0] )) 
+
+login = {}
+login[:target] = ansible_args['target']
+login[:username] = 'root'
+login[:password] = 'juniper1'
+
+Netconf::SSH.new( login ) do |ndev|
+  Junos::Ez::Provider( ndev )
+  print JSON.dump( ndev.facts.catalog )
+end
+

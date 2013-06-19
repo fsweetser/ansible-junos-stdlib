@@ -1,0 +1,146 @@
+#!/usr/local/bin/ruby
+# WANT_JSON
+
+=begin License
+#====================================================================
+
+#====================================================================
+=end
+
+require 'rubygems'
+require 'pp'
+require 'json'
+require 'net/scp'
+require 'logger'
+require 'net/netconf/jnpr'
+require 'junos-ez/stdlib'
+
+### -----------------------------------------------------------------
+### ANSIBLE Arguments:
+### -----------------------------------------------------------------
+### -----------------------------------------------------------------
+
+ansible_args = JSON.parse( File.read( ARGV[0] )) 
+
+hostname = ansible_args['hostname']
+target = hostname || ansible_args['target']
+file_name = ansible_args['config_file']
+file_on_server = ansible_args['config_dir'] + '/' + file_name
+
+# -------------------------------------------------------------------
+# setup a logger object to capture status/progress. Use mode "a+"
+# to append to the file
+# -------------------------------------------------------------------
+
+logfile = File.open( "/usr/local/junos/log/#{hostname}", "a+")
+logfile.sync = true
+log = Logger.new( logfile )
+log.progname = target
+
+log.info( "/START: config-install for inventory_hostname: #{ hostname }" )
+
+# -------------------------------------------------------------------
+# Open a connection to the Junos target
+# -------------------------------------------------------------------
+
+ndev = Netconf::SSH.new( :target => target, :username => 'root', :password => 'juniper1' )
+ndev.open
+
+# -------------------------------------------------------------------
+# attach Junos-EZ providers & utils that we need ...
+# -------------------------------------------------------------------
+
+Junos::Ez::Provider( ndev )
+Junos::Ez::Config::Utils( ndev, :cfg )
+
+# -------------------------------------------------------------------
+# Exclusive config-load sequence with exception handling 
+# -------------------------------------------------------------------
+
+def ansible_module_fail( ndev, err_msg )
+  ndev.close
+  print JSON.dump({'failure' => true, 'msg' => err_msg })
+  exit( 1 )
+end
+
+# ===================================================================
+# Step-1: Lock config, and load changes
+# ===================================================================
+
+begin     
+  
+  # -----------------------------------------------------------------  
+  # lock the candidate config 
+  # -----------------------------------------------------------------  
+  
+  ndev.cfg.lock!
+
+  # -----------------------------------------------------------------  
+  # load the contents of the config file into the device. 
+  # check for load/commit errors
+  # -----------------------------------------------------------------  
+  
+  log.info( "/LOAD: config-file #{ file_on_server }")
+  load_opts = { :filename => file_on_server }
+  load_opts[:override!] = true if ansible_args['override']
+  
+  ndev.cfg.load!( load_opts )
+  log.info("!OK/LOAD: configuration loaded OK.")
+  
+rescue Netconf::LockError
+  err_msg = 'unable to acquire exclusive-lock'
+  log.error("!ERROR/LOCK: #{err_msg}")
+  ansible_module_fail( ndev, err_msg )
+  # unreacable
+  
+rescue Netconf::EditError => e
+  rpc_err = Junos::Ez::rpc_errors( e.rsp )
+  unless rpc_err[0][:severity] == 'warning'
+    err_msg = pp( rpc_err )
+    log.error("!ERROR/LOAD: #{err_msg}")
+    ansible_module_fail( ndev, err_msg )
+    #unreachable
+  else
+    log.info("!OK/LOAD: configuration loaded OK, with warnings.")
+  end
+end # config-load sequence
+
+
+# ===================================================================
+# Step-2: Commit changes, and unlock config
+# ===================================================================
+
+begin
+  log.info("/COMMIT-CHECK: validating configuration ... ")
+  unless (errs = ndev.cfg.commit?) == true
+    err_msg = pp( errs )
+    log.error( "!ERROR/COMMIT-CHECK: #{ err_msg }" )
+    ansible_module_fail( ndev, err_msg )
+  end
+  
+  log.info("!OK/COMMIT-CHECK: configuration validated")
+
+  # -----------------------------------------------------------------  
+  # commit the changes and unlock the config
+  # -----------------------------------------------------------------  
+  
+  log.info("/COMMIT: committing configuration changes ..." )
+  ndev.cfg.commit!
+  ndev.cfg.unlock!
+  
+  log.info("!OK/COMMIT: configuration now active")
+
+rescue Netconf::CommitError => e
+  err_msg = pp( Junos::Ez::rpc_errors( e.rpc ))
+  log.error( "!ERROR/COMMIT: #{err_msg}" )
+  ansible_module_fail( ndev, err_msg )
+  #unreachable  
+end
+
+### -----------------------------------------------------------------
+### All Done !!!
+### -----------------------------------------------------------------
+
+log.info( "/END: config-install for inventory_hostname: #{ hostname }" )
+ndev.close
+print JSON.dump({ 'changed' => true })

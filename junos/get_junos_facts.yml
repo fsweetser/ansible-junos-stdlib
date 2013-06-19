@@ -1,0 +1,27 @@
+###
+### get_junos_facts
+###
+
+---
+- hosts: all
+  name: Display Junos Facts, make sure you use -v
+  connection: local
+  gather_facts: no    
+  tasks:
+    
+    # check to see if the target has NETCONF enabled
+    
+    - include: tasks/check_nc.yml timeout=1
+
+    # call the junos_get_fact module to retrieve the 'facts'
+    
+    - name: Contacting target to obtain Junos facts
+      junos_get_facts: target={{ inventory_hostname }}
+      register: junos_facts
+    
+    # display the facts to the screen, requires the -v ansible-playbook option
+    
+    - name: Show Junos OS version, only if you used -v
+      debug: msg="ver={{ junos_facts.version }}"
+
+

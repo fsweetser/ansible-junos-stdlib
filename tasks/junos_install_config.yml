@@ -1,0 +1,7 @@
+---
+- name: "Installing Complete Junos configuration"
+  action: junos_install_config >
+    hostname="{{ inventory_hostname }}"
+    dir="/usr/local/junos/configs/{{ inventory_hostname }}"
+    filename=junos.conf
+    override=True

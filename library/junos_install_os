@@ -1,0 +1,172 @@
+#!/usr/local/bin/ruby
+# WANT_JSON
+
+=begin License
+#====================================================================
+
+#====================================================================
+=end
+
+require 'rubygems'
+require 'json'
+require 'net/scp'
+require 'logger'
+require 'net/netconf/jnpr'
+require 'junos-ez/stdlib'
+
+### -----------------------------------------------------------------
+### ANSIBLE Arguments:
+### -----------------------------------------------------------------
+### @@@ TBD @@@
+### -----------------------------------------------------------------
+
+ansible_args = JSON.parse( File.read( ARGV[0] )) 
+
+hostname = ansible_args['hostname']
+target = ansible_args['target'] || hostname
+reboot = ansible_args['reboot']
+validate_image = ansible_args['validate']
+package_version = ansible_args['version']
+package_filename = ansible_args['package']
+audit_only = ansible_args['audit'] || false
+
+# -------------------------------------------------------------------
+# setup a logger object to capture status/progress. Use mode "a+"
+# to append the file (i.e. clear it)
+# -------------------------------------------------------------------
+
+logfile = File.open( "/usr/local/junos/log/#{hostname}", "a+")
+logfile.sync = true
+log = Logger.new( logfile )
+log.progname = target
+
+log.info( "/START: software-install for inventory_hostname: #{ hostname }, ver: #{ package_version }" )
+
+# -------------------------------------------------------------------
+# Open a connection to the Junos target
+# -------------------------------------------------------------------
+
+ndev = Netconf::SSH.new( :target => target, :username => 'root', :password => 'juniper1' )
+ndev.open
+
+
+# -------------------------------------------------------------------
+# attach Junos-EZ providers & utils that we need ...
+# -------------------------------------------------------------------
+
+Junos::Ez::Provider( ndev )
+
+# -------------------------------------------------------------------
+# first check the desired version against the current version
+# and if they match, then return with 'changed = false' indication
+# -------------------------------------------------------------------
+
+if ndev.facts[:version] == package_version
+  log.info( "/INFO: version on target matches, so no install required" )
+  log.info( "/END: software-install for inventory_hostname: #{ hostname }" )
+  print JSON.dump({ 'changed' => false, 'version' => package_version }) 
+  exit( 1 )
+end
+
+if audit_only
+  log.info( "/INFO: version on target does not match, upgrade required" )
+  log.info( "/END: software-install for inventory_hostname: #{ hostname }" )
+  print JSON.dump({ 'changed' => true,
+    'has_version' => ndev.facts[:version],
+    'version' => package_version }) 
+  exit( 1 )
+end  
+
+Junos::Ez::RE::Utils( ndev, :re )       # routing-engine utils
+Junos::Ez::FS::Utils( ndev, :fs )       # filesystem utils
+
+# -------------------------------------------------------------------
+# upload the software image to the target device
+# http://net-ssh.github.io/net-scp/
+# -------------------------------------------------------------------
+
+file_on_server = ansible_args['package_dir'] + '/' + package_filename
+file_on_junos = '/var/tmp/' + package_filename
+
+# simple function to use the Netconf::SSH SCP functionality to
+# upload a file to the device and watch the percetage tick by ...
+
+def ndev.copy_file_to_junos( log, file_on_server, file_on_junos )  
+  log.info( "/COPY: #{ file_on_server } ... " )
+  mgr_i = cur_i = 0
+  self.scp.upload!( file_on_server, file_on_junos ) do |ch, name, sent, total|  
+    pct = (sent.to_f / total.to_f) * 100
+    mgr_i = pct.to_i
+    if mgr_i != cur_i
+      cur_i = mgr_i
+      log.info( sprintf( "+COPY/PROGRESS: %4s", cur_i.to_s + "%" ))
+    end    
+  end
+end
+
+log.info('/CLEAN-FILESYSTEM')
+ndev.fs.cleanup!
+log.info('!OK/CLEAN-FILESYSTEM: Completed')
+
+ndev.copy_file_to_junos( log, file_on_server, file_on_junos )
+
+## ------------------------------------------------------------------
+## check the MD5 checksum values
+## ------------------------------------------------------------------
+
+log.info( '!OK/COPY: Completed ')
+log.info( '/VALIDATE: MD5 checksum ... ' )
+md5_on_s = Digest::MD5.file( file_on_server ).to_s
+md5_on_j = ndev.fs.checksum( :md5, file_on_junos )
+
+if md5_on_s != md5_on_j
+  ndev.close
+  err_msg = '!ERROR/VALIDATE: The MD5 checksum values do not match!'
+  log.error( err_msg )
+  print JSON.dump({ 'failed' => true, 'msg' => err_msg })
+  exit( 1 )
+end
+
+## ------------------------------------------------------------------
+## check image validation, and perform installation
+## ------------------------------------------------------------------
+
+log.info( '!OK/VALIDATE: MD5 checksum validated')
+
+if validate_image 
+  log.info( '/VALIDATE: Junos image ... ')
+  
+  unless ndev.re.software_validate?( file_on_junos )
+    ndev.close
+    err_msg = '!ERROR/VALIDATE: The softare image does not validate!'
+    log.error( err_msg )
+    print JSON.dump({ 'failed' => true, 'msg' => err_msg })
+    exit( 1 )
+  end
+  
+  log.info( '!OK/VALIDATE: Junos image validated')
+end
+
+log.info( '/INSTALL: proceeding with image installation ... ' )
+rc = ndev.re.software_install!( :package => file_on_junos, :no_validate => true )
+if rc != true
+  ndev.close
+  log.error( rc )
+  print JSON.dump({ 'failed' => true, 'msg' => rc }) 
+  exit( 1 )
+end
+
+### -----------------------------------------------------------------
+### ALL DONE!
+### -----------------------------------------------------------------
+
+log.info( "!OK/INSTALL: Junos image installation OK!" )
+
+if reboot
+  log.info( "/REBOOT: target 'now' to load new software" )
+  ndev.re.reboot!( :in => 0 )
+end
+
+log.info( "/END: software-install for inventory_hostname: #{ hostname }" )
+ndev.close
+print JSON.dump({ 'changed' => true })

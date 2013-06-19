@@ -1,0 +1,17 @@
+---
+- name: "Removing config temp directory"
+  file: path=/usr/local/junos/configs/{{ inventory_hostname }} state=absent
+  
+- name: "Creating config temp directory"
+  file: path=/usr/local/junos/configs/{{ inventory_hostname }} state=directory
+
+- name: "Building configuration fragments from template files"
+  template: src={{ item }} dest=/usr/local/junos/configs/{{ inventory_hostname }}
+  with_fileglob: template_files 
+
+- name: "Aessembling configuration fragments into junos.conf file"
+  assemble: >
+    src=/usr/local/junos/configs/{{inventory_hostname}}
+    dest=/usr/local/junos/configs/{{inventory_hostname}}/junos.conf
+    
+    

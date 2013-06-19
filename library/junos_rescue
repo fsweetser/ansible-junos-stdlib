@@ -1,0 +1,19 @@
+#!/usr/bin/ruby
+# WANT_JSON
+
+require 'rubygems'
+require 'json'
+require 'net/netconf/jnpr'
+require 'junos-ez/stdlib'
+
+ansible_args = JSON.parse( File.read( ARGV[0] )) 
+
+hostname = ansible_args['hostname']
+target = hostname || ansible_args['target']
+
+Netconf::SSH.new( :target=>target, :username=>'root', :password=>'juniper1' ) do |ndev|
+  ndev.rpc.load_configuration( :rescue => 'rescue' )
+  ndev.rpc.commit_configuration
+end
+
+print JSON.dump({ 'changed' => true })
