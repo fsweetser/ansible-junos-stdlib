@@ -24,4 +24,13 @@ MODULES
 DEPENDENCIES
 ============
 
+  The modules are currently written in Ruby, as we had a lot of Ruby gems already written for Junos automation.  We have not started a Python port, but if you're interested in helping out on that effort, please let me know.  You will need the following:
+  
+  * Ruby 1.9.3
+  * Gem: netconf
+  * Gem: junos-ez-stdlib
 
+LICENSE
+=======
+  BSD-2 like, see LICESE file for details
+  
