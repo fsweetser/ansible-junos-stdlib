@@ -1,7 +1,9 @@
 DESCRIPTION
 ===========
 
-__EXPERIMENTAL!!__  Junos modules written to work with [Anisble 1.2](http://www.ansibleworks.com).  This repo contains the modules, `library` directory, as well as playbooks, `junos` directory, and reusable tasks, `tasks` directory
+__EXPERIMENTAL!!__  Junos modules written to work with [Anisble 1.2](http://www.ansibleworks.com).  This repo contains the modules, `library` directory, as well as playbooks, `junos` directory, and reusable tasks, `tasks` directory.
+
+These modules use the `connection: local` method to establish a NETCONF connection to the remote Junos devices.  No additional software is required to be installed on the Junos device.
 
 USAGE
 =====
@@ -27,8 +29,8 @@ DEPENDENCIES
   The modules are currently written in Ruby, as we had a lot of Ruby gems already written for Junos automation.  We have not started a Python port, but if you're interested in helping out on that effort, please let me know.  You will need the following:
   
   * Ruby 1.9.3
-  * Gem: netconf
-  * Gem: junos-ez-stdlib
+  * Gem: [netconf](https://github.com/Juniper-Workflow/net-netconf)
+  * Gem: [junos-ez-stdlib](https://github.com/jeremyschulman/ruby-junos-ez-stdlib)
 
 LICENSE
 =======
