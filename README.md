@@ -43,7 +43,7 @@ Sample playbooks that use the tasks and modules
 USAGE
 =====
 
-  Refer to the ansible-junos-demo repository for sample demonstration use-case to install Junos software, template build configurations, and initialize devices with configs.
+  Refer to the [ansible-junos-demo repository](https://github.com/jeremyschulman/ansible-junos-demo) for sample demonstration use-case to install Junos software, template build configurations, and initialize devices with configs.
   
 MODULES
 =======
