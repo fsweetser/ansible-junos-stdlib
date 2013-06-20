@@ -3,7 +3,7 @@ DESCRIPTION
 
 __EXPERIMENTAL!!__  Junos modules written to work with [Anisble 1.2](http://www.ansibleworks.com).  This repo contains the modules, `library` directory, as well as playbooks, `junos` directory, and reusable tasks, `tasks` directory.
 
-These modules use the `connection: local` method to establish a NETCONF connection to the remote Junos devices.  No additional software is required to be installed on the Junos device.
+These modules use the `connection: local` method to establish a NETCONF connection from the ansible server to the remote Junos devices.  No additional software is required to be installed on the Junos device.
 
 USAGE
 =====
