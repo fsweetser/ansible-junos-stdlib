@@ -1,10 +1,58 @@
 #!/usr/local/bin/ruby
 # WANT_JSON
 
-=begin License
-#====================================================================
+=begin
 
-#====================================================================
+  DESCRIPTION:
+  
+    This module is used to load the contents of a Junos configuration file.  This module
+    will either completely replace the config with the file contents ('override' mode) or
+    merge the file contents into the configuration.
+    
+    This module will exclusively lock the Junos config.  If the lock attempt fails,
+    then failure => true will be returned
+    
+    The file format can be either "set" commands, "text" format, or "XML" format.
+    This format is automatically selected by the filename extention.  Refer to the
+    junos-ez-stdlib gem documentation for details on this; but in a nutshell:
+      .set = set commands
+      .conf = text structure (aka "curly-brace")
+      .xml = XML
+  
+  ARGUMENTS:
+  
+    host        - The hostname/ip-address of the target Junos device
+    file        - The configuration file to load
+    
+    override    - True/False*, when True will replace the entire config with the file
+                  contents provided.  when False, the file contents are "merged"
+                  into the existing configuration
+  
+    
+  RETURNS:
+  
+    changed => true, when config installed
+    
+    failed => true, when there was an error
+      msg => String indicating error
+
+  EXAMPLE TASK USAGE:
+  
+    tasks:
+    - name: Pushing config ... please wait 
+      junos_install_config: >
+        host="{{ inventory_hostname }}"
+        file=/usr/local/junos/configs/{{ inventory_hostname }}/junos.conf
+        override=True
+
+  NOTES:
+     
+    A logfile is created in /usr/local/junos/log/<host> to indicate progress of this 
+    activity.  For now, the PATH and existing of this logfile is hardcoded.  Likely need
+    to fix this.
+    
+    user/password currently hardcoded; need to fix this args + ssh_keys
+    
 =end
 
 require 'rubygems'
@@ -15,17 +63,13 @@ require 'logger'
 require 'net/netconf/jnpr'
 require 'junos-ez/stdlib'
 
-### -----------------------------------------------------------------
-### ANSIBLE Arguments:
-### -----------------------------------------------------------------
-### -----------------------------------------------------------------
 
 ansible_args = JSON.parse( File.read( ARGV[0] )) 
 
-hostname = ansible_args['hostname']
+hostname = ansible_args['host']
 target = hostname || ansible_args['target']
-file_name = ansible_args['config_file']
-file_on_server = ansible_args['config_dir'] + '/' + file_name
+file_on_server = ansible_args['file']
+file_name = File.basename( file_on_server )
 
 # -------------------------------------------------------------------
 # setup a logger object to capture status/progress. Use mode "a+"
