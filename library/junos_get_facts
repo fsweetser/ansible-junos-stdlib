@@ -24,6 +24,8 @@
   NOTES:
     Does not set 'changed' in return Hash
     
+    username/password currently hardcoded - WILL FIX.
+    
 =end
 
 require 'rubygems'

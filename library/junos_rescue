@@ -1,6 +1,28 @@
 #!/usr/bin/ruby
 # WANT_JSON
 
+=begin
+
+  DESCRIPTION:
+
+    This module will load the "rescue" configuration.  This assumes that a rescue configuration
+    has been previously saved.  
+    
+    (*TO-DO*: add the ability to save a rescue config to this module)
+  
+  ARGUMENTS:
+    host        - The hostname/ip-address of the target Junos device
+      
+  RETURNS:
+
+    changed => 'true', always
+
+  NOTES:
+      
+    Junos username/password currently hardcoded; need to fix this args + ssh_keys
+    
+=end
+
 require 'rubygems'
 require 'json'
 require 'net/netconf/jnpr'
@@ -8,10 +30,12 @@ require 'junos-ez/stdlib'
 
 ansible_args = JSON.parse( File.read( ARGV[0] )) 
 
-hostname = ansible_args['hostname']
-target = hostname || ansible_args['target']
+login = {}
+login[:target] = ansible_args['host']
+login[:username] = 'root'
+login[:password] = 'juniper1'
 
-Netconf::SSH.new( :target=>target, :username=>'root', :password=>'juniper1' ) do |ndev|
+Netconf::SSH.new( login ) do |ndev|
   ndev.rpc.load_configuration( :rescue => 'rescue' )
   ndev.rpc.commit_configuration
 end
