@@ -1,9 +1,44 @@
 DESCRIPTION
 ===========
 
-__EXPERIMENTAL!!__  Junos modules written to work with [Anisble 1.2](http://www.ansibleworks.com).  This repo contains the modules, `library` directory, as well as playbooks, `junos` directory, and reusable tasks, `tasks` directory.
+__EXPERIMENTAL!!__  Junos modules written to work with [Anisble 1.2](http://www.ansibleworks.com).  These modules use the `connection: local` method to establish a NETCONF connection from the ansible server to the remote Junos devices.  No additional software is required to be installed on the Junos device.
 
-These modules use the `connection: local` method to establish a NETCONF connection from the ansible server to the remote Junos devices.  No additional software is required to be installed on the Junos device.
+
+OVERVIEW
+========
+
+This repo contains the following directories
+
+Ansible modules for Junos
+````
+|-- library
+|   |-- junos_get_facts
+|   |-- junos_install_config
+|   |-- junos_install_os
+|   `-- junos_rescue
+
+````
+
+Sample Task Files that use the modules
+````
+|-- tasks
+|   |-- check_nc.yml
+|   |-- junos_get_facts.yml
+|   |-- junos_install_config.yml
+|   |-- make_junos_conf.yml
+|   `-- wait_nc.yml
+````
+
+Sample playbooks that use the tasks and modules
+````
+|-- junos
+|   |-- audit_os.yml
+|   |-- get_junos_facts.yml
+|   |-- install_os.yml
+|   |-- nc_ready.yml
+|   |-- shutdown.yml
+|   `-- tasks -> ../tasks
+````
 
 USAGE
 =====
