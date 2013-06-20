@@ -16,7 +16,7 @@
     # call the junos_get_fact module to retrieve the 'facts'
     
     - name: Contacting target to obtain Junos facts
-      junos_get_facts: hostname={{ inventory_hostname }}
+      junos_get_facts: host={{ inventory_hostname }}
       register: junos_facts
     
     # display the facts to the screen, requires the -v ansible-playbook option
