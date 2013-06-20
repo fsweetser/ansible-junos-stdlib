@@ -1,10 +1,65 @@
 #!/usr/local/bin/ruby
 # WANT_JSON
 
-=begin License
-#====================================================================
+=begin
 
-#====================================================================
+  DESCRIPTION:
+  
+  This module will either (a) install a Junos OS package or (b) compare the current version to 
+  the specified version ("audit").  THe 'install' mode is IDEMPOTENT, so if the specified image
+  is already present on the device, this module will return 'changed' => false.
+  
+  ARGUMENTS:
+    host        - The hostname/ip-address of the target Junos device
+    version     - The Junos OS version string, e.g. "12.2R3.5"
+    package     - The full path to the Junos OS image file (.tgz)
+    
+    validate    - True/False*, used to perform OS validation as part of the install
+    audit       - True/False*, when True only run audit
+    reboot      - True/False*, when True reboot the Junos device after the OS is installed
+  
+    
+  RETURNS:
+    In 'install' mode will return changed => 'true' iff a new version was installed
+    
+    In 'audit' mode will return changed => 'true' if the specified package is not already
+    installed on the device.  The return Hash will also include:
+        version => the same string as the argument version
+        has_version => the current Junos OS version string
+    
+  EXAMPLE TASK USAGE ("install mode"):
+
+  EXAMPLE TASK USAGE ("audit mode"):
+  
+    tasks:
+      - name: Checking Junos OS target version against required version
+        junos_install_os: >
+          host={{ inventory_hostname }}  
+          version=12.3R2.5
+          audit=True
+        register: junos_audit
+        notify:
+          - Junos upgrade required
+          
+    handlers:
+      - name: Junos upgrade required
+        debug: msg="Junos OS upgrade required, needs {{ junos_audit.version }}, has {{ junos_audit.has_version }}"
+          
+    (--Partial output from ansible-playbook notify, reformatted--)
+      NOTIFIED: [Junos upgrade required] ******************************************** 
+      ok: [my_ex_switch_1] => 
+        {"msg": "Junos OS upgrade required, needs 12.3R2.5, has 12.3R1.7"}
+
+  NOTES:
+  
+    Junos OS install is IDEMPOTENT.
+    
+    A logfile is created in /usr/local/junos/log/<host> to indicate progress of this 
+    activity.  For now, the PATH and existing of this logfile is hardcoded.  Likely need
+    to fix this.
+    
+    user/password currently hardcoded; need to fix this args + ssh_keys
+    
 =end
 
 require 'rubygems'
@@ -14,16 +69,10 @@ require 'logger'
 require 'net/netconf/jnpr'
 require 'junos-ez/stdlib'
 
-### -----------------------------------------------------------------
-### ANSIBLE Arguments:
-### -----------------------------------------------------------------
-### @@@ TBD @@@
-### -----------------------------------------------------------------
 
 ansible_args = JSON.parse( File.read( ARGV[0] )) 
 
-hostname = ansible_args['hostname']
-target = ansible_args['target'] || hostname
+hostname = ansible_args['host']
 reboot = ansible_args['reboot']
 validate_image = ansible_args['validate']
 package_version = ansible_args['version']
@@ -38,7 +87,7 @@ audit_only = ansible_args['audit'] || false
 logfile = File.open( "/usr/local/junos/log/#{hostname}", "a+")
 logfile.sync = true
 log = Logger.new( logfile )
-log.progname = target
+log.progname = hostname
 
 log.info( "/START: software-install for inventory_hostname: #{ hostname }, ver: #{ package_version }" )
 
@@ -46,7 +95,7 @@ log.info( "/START: software-install for inventory_hostname: #{ hostname }, ver: 
 # Open a connection to the Junos target
 # -------------------------------------------------------------------
 
-ndev = Netconf::SSH.new( :target => target, :username => 'root', :password => 'juniper1' )
+ndev = Netconf::SSH.new( :target => hostname, :username => 'root', :password => 'juniper1' )
 ndev.open
 
 
@@ -85,8 +134,8 @@ Junos::Ez::FS::Utils( ndev, :fs )       # filesystem utils
 # http://net-ssh.github.io/net-scp/
 # -------------------------------------------------------------------
 
-file_on_server = ansible_args['package_dir'] + '/' + package_filename
-file_on_junos = '/var/tmp/' + package_filename
+file_on_server = package_filename
+file_on_junos = '/var/tmp/' + File.basename( file_on_server )
 
 # simple function to use the Netconf::SSH SCP functionality to
 # upload a file to the device and watch the percetage tick by ...

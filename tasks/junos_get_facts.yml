@@ -1,5 +1,5 @@
 ---
 - name: "Contacting target to obtain Junos facts"
-  junos_get_facts: hostname=vsrx_black
+  junos_get_facts: host={{ inventory_hostname }}
   register: junos_facts
   when: junos_facts is not defined  

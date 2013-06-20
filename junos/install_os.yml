@@ -13,10 +13,9 @@
   tasks:
     - name: Junos OS install, please wait, this could take a bit ...
       junos_install_os: >
-        hostname="{{ inventory_hostname }}"  
-        version="{{ PACKAGE_TAGS[junos_os_tag].version }}"
-        package="{{ PACKAGE_TAGS[junos_os_tag].package }}"
-        package_dir="{{ PACKAGE_DIR }}" 
+        host={{ inventory_hostname }}  
+        version={{ PACKAGE_TAGS[junos_os_tag].version }}
+        package={{ PACKAGE_DIR }}/{{ PACKAGE_TAGS[junos_os_tag].package }}
         reboot=True
       notify:
         - Junos reboot
@@ -24,6 +23,6 @@
   
   handlers:
     - name: Junos reboot
-      pause: seconds="{{ reboot_wait_time }}"
+      pause: seconds={{ reboot_wait_time }}
     - name: Junos wait for restart
-      wait_for: host="{{ inventory_hostname }}" port=830
+      wait_for: host={{ inventory_hostname }} port=830
