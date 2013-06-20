@@ -10,7 +10,7 @@
   information like Junos OS version, hardware model, serial-number, etc.
   
   ARGUMENTS:
-    hostname    - The hostname/ip-address of the target Junos device
+    host    - The hostname/ip-address of the target Junos device
     
   RETURNS:
     Hash of Junos device "facts"
@@ -18,7 +18,7 @@
   EXAMPLE TASK USAGE:
   
   - name: "Contacting target to obtain Junos facts"
-    junos_get_facts: hostname={{ inventory_hostname }}
+    junos_get_facts: host={{ inventory_hostname }}
     register: junos_facts
 
   NOTES:
@@ -36,7 +36,7 @@ require 'junos-ez/stdlib'
 ansible_args = JSON.parse( File.read( ARGV[0] )) 
 
 login = {}
-login[:target] = ansible_args['hostname']
+login[:target] = ansible_args['host']
 login[:username] = 'root'
 login[:password] = 'juniper1'
 
