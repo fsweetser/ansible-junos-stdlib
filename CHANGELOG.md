@@ -14,3 +14,7 @@
     playbook.  You need to copy this file to /usr/local/junos/packages.
   
 
+  0.1.1: 2013-06-20
+  
+    Removed the hardcoded root user/password and added support for args (user/password).  If user
+    is not provided, then assumes $USER.  If password is not provided, then assumes ssh-key is active.
