@@ -12,8 +12,8 @@
               
     - name: Checking Junos OS target version against required version
       junos_install_os: >
-        host="{{ inventory_hostname }}"  
-        version="{{ PACKAGE_TAGS[junos_os_tag].version }}"
+        host={{ inventory_hostname }}  
+        version={{ PACKAGE_TAGS[junos_os_tag].version }}
         audit=True
       register: junos_audit
       notify:
