@@ -1,5 +1,5 @@
 ---
 - name: "Contacting target to obtain Junos facts"
-  junos_get_facts: target={{ target_ipaddr | default(inventory_hostname) }}
+  junos_get_facts: hostname=vsrx_black
   register: junos_facts
   when: junos_facts is not defined  
