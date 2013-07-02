@@ -25,4 +25,4 @@
     - name: Junos reboot
       pause: seconds={{ reboot_wait_time }}
     - name: Junos wait for restart
-      wait_for: host={{ inventory_hostname }} port=830
+      wait_for: host={{ inventory_hostname }} port=830 timeout=1800
